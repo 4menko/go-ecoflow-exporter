@@ -130,10 +130,16 @@ func (p *PrometheusExporter) handleOneMetric(device EcoflowDevice, field string,
 		return
 	}
 
-	// Try to convert to float and set value
-	floatVal, ok := val.(float64)
-	if ok {
-		gauge.Set(floatVal)
+	// Set numbers as is and booleans as 1 or 0
+	switch v := val.(type) {
+	case float64:
+		gauge.Set(v)
+	case bool:
+		if v {
+			gauge.Set(1)
+		} else {
+			gauge.Set(0)
+		}
 	}
 }
 

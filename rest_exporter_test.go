@@ -66,6 +66,47 @@ func TestRestExporter_DeviceNameMapping(t *testing.T) {
 	}
 }
 
+// TestRestExporter_DeviceSelection tests which devices of the account are exported
+func TestRestExporter_DeviceSelection(t *testing.T) {
+	testCases := []struct {
+		name     string
+		mapping  map[string]string
+		sn       string
+		expected bool
+	}{
+		{
+			name:     "Listed device",
+			mapping:  map[string]string{"D3N1234": "Sanji"},
+			sn:       "D3N1234",
+			expected: true,
+		},
+		{
+			name:     "Unlisted device",
+			mapping:  map[string]string{"D3N1234": "Sanji"},
+			sn:       "R621234",
+			expected: false,
+		},
+		{
+			name:     "Empty mapping selects all",
+			mapping:  map[string]string{},
+			sn:       "R621234",
+			expected: true,
+		},
+		{
+			name:     "Nil mapping selects all",
+			mapping:  nil,
+			sn:       "R621234",
+			expected: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, isDeviceSelected(tc.mapping, tc.sn))
+		})
+	}
+}
+
 // TestRestExporter_IntervalConfiguration tests interval configuration
 func TestRestExporter_IntervalConfiguration(t *testing.T) {
 	handler := &MockMetricHandler{}

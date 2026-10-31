@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -285,6 +287,48 @@ func TestPrometheusExporter_InvalidValues(t *testing.T) {
 	// Metrics may be created for all parameters (including invalid types)
 	// The key is that they won't have valid values set (checked by error logs above)
 	assert.GreaterOrEqual(t, metricCount, 2, "Should have at least valid metric and online metric")
+}
+
+// TestPrometheusExporter_BoolValues tests that boolean parameters are exported as 1 and 0
+func TestPrometheusExporter_BoolValues(t *testing.T) {
+	config := &PrometheusConfig{
+		Prefix:     "test_bool", // Unique prefix
+		ServerPort: "19989",
+	}
+
+	exporter := NewPrometheusExporter(config)
+	defer exporter.Close(context.Background())
+
+	time.Sleep(100 * time.Millisecond)
+
+	device := EcoflowDevice{
+		SN:     "BOOL123", // Unique device SN
+		Name:   "TestDevice",
+		Online: 1,
+	}
+
+	params := map[string]interface{}{
+		"xboostEn": true,
+		"enBeep":   false,
+	}
+	exporter.Handle(context.Background(), device, params)
+
+	exporter.mu.RLock()
+	enabled, hasEnabled := exporter.metrics["BOOL123_test_bool_xboost_en"]
+	disabled, hasDisabled := exporter.metrics["BOOL123_test_bool_en_beep"]
+	exporter.mu.RUnlock()
+
+	require.True(t, hasEnabled, "Should have xboostEn metric")
+	require.True(t, hasDisabled, "Should have enBeep metric")
+	assert.Equal(t, 1.0, gaugeValue(t, enabled), "true should be exported as 1")
+	assert.Equal(t, 0.0, gaugeValue(t, disabled), "false should be exported as 0")
+}
+
+func gaugeValue(t *testing.T, gauge prometheus.Gauge) float64 {
+	t.Helper()
+	metric := &dto.Metric{}
+	require.NoError(t, gauge.Write(metric))
+	return metric.GetGauge().GetValue()
 }
 
 // TestPrometheusExporter_MetricNameGeneration tests metric name conversion

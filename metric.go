@@ -99,3 +99,13 @@ func getDeviceName(mapping map[string]string, sn string) string {
 		return sn
 	}
 }
+
+// isDeviceSelected reports whether the device should be exported. An empty mapping selects every device,
+// otherwise only the devices listed in ECOFLOW_DEVICES or ECOFLOW_DEVICES_PRETTY_NAMES are selected.
+func isDeviceSelected(mapping map[string]string, sn string) bool {
+	if len(mapping) == 0 {
+		return true
+	}
+	_, exists := mapping[sn]
+	return exists
+}

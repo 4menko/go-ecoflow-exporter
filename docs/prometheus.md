@@ -9,6 +9,9 @@
    If  `EXPORTER_TYPE=rest` is selected, then provide values for the following parameters:
     - `ECOFLOW_ACCESS_KEY` - the access key from the Ecoflow development website
     - `ECOFLOW_SECRET_KEY` - the secret key from the Ecoflow development website
+    - `ECOFLOW_DEVICES` (optional) - the list of devices serial numbers separated by comma. When it (or
+      `ECOFLOW_DEVICES_PRETTY_NAMES`) is set, only the listed devices are exported. Otherwise every device of the
+      account is exported.
 
    If  `EXPORTER_TYPE=mqtt` is selected, then provide values for the following parameters:
     - `ECOFLOW_EMAIL` - your email address that you use to log in to the Ecoflow mobile app

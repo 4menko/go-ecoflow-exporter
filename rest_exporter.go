@@ -38,6 +38,10 @@ func (e *RestMetricsExporter) ExportMetrics() {
 		}
 
 		for _, dev := range devices.Devices {
+			if !isDeviceSelected(e.mapping, dev.SN) {
+				slog.Debug("Skipping device that is not listed in ECOFLOW_DEVICES", "sn", dev.SN)
+				continue
+			}
 			slog.Info("Getting ecoflow parameters", "sn", dev.SN)
 			rawParameters, pErr := e.c.GetDeviceAllParameters(ctx, dev.SN)
 			if pErr != nil {

@@ -10,9 +10,10 @@ import (
 )
 
 type EcoflowDevice struct {
-	SN     string `json:"sn"`
-	Name   string `json:"name"`
-	Online int    `json:"online"`
+	SN     string            `json:"sn"`
+	Name   string            `json:"name"`
+	Online int               `json:"online"`
+	Labels map[string]string `json:"labels,omitempty"` // optional per-device custom labels
 }
 
 type MetricHandler interface {

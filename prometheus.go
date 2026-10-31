@@ -105,12 +105,16 @@ func (p *PrometheusExporter) handleOneMetric(device EcoflowDevice, field string,
 	gauge, ok := p.metrics[deviceMetricName]
 	if !ok {
 		slog.Debug("Adding new metric", "metric", metricName, "device", device.SN, "device_name", device.Name)
+		constLabels := prometheus.Labels{
+			"device":        device.Name,
+			"serial_number": device.SN,
+		}
+		for k, v := range device.Labels {
+			constLabels[k] = v
+		}
 		gauge = prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: metricName,
-			ConstLabels: map[string]string{
-				"device":        device.Name,
-				"serial_number": device.SN,
-			},
+			Name:        metricName,
+			ConstLabels: constLabels,
 		})
 		prometheus.MustRegister(gauge)
 		p.metrics[deviceMetricName] = gauge

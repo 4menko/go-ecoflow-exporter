@@ -123,10 +123,16 @@ func createAndStartMqttExporter(handlers []MetricHandler) error {
 		return devicesMandatoryErr
 	}
 
+	deviceLabels, err := getDeviceLabels()
+	if err != nil {
+		return err
+	}
+
 	exporter, err := NewMqttMetricsExporter(
 		email,
 		password,
 		devicesList,
+		deviceLabels,
 		time.Second*time.Duration(offlineThreshold),
 		time.Second*time.Duration(pingInterval),
 		time.Second*time.Duration(stateRefreshInterval),
@@ -161,7 +167,12 @@ func createAndStartRestExporter(handlers []MetricHandler) error {
 		return err
 	}
 
-	exporter := NewRestMetricsExporter(client, time.Duration(interval)*time.Second, mapping, handlers...)
+	deviceLabels, err := getDeviceLabels()
+	if err != nil {
+		return err
+	}
+
+	exporter := NewRestMetricsExporter(client, time.Duration(interval)*time.Second, mapping, deviceLabels, handlers...)
 	go exporter.ExportMetrics()
 	return nil
 }
@@ -196,6 +207,21 @@ func getDeviceMapping() (map[string]string, error) {
 	}
 
 	return mapping, nil
+}
+
+// getDeviceLabels parses ECOFLOW_DEVICE_LABELS env var.
+// Expected format: {"SN1":{"label1":"value1","label2":"value2"},"SN2":{"label1":"value3"}}
+// Returns an empty map if the env var is not set.
+func getDeviceLabels() (map[string]map[string]string, error) {
+	raw := os.Getenv("ECOFLOW_DEVICE_LABELS")
+	if raw == "" {
+		return map[string]map[string]string{}, nil
+	}
+	var labels map[string]map[string]string
+	if err := json.Unmarshal([]byte(raw), &labels); err != nil {
+		return nil, fmt.Errorf("unable to parse ECOFLOW_DEVICE_LABELS, expected format {\"SN\":{\"label\":\"value\"}}: %w", err)
+	}
+	return labels, nil
 }
 
 func enableTimescaleDb(metricPrefix string, handlers []MetricHandler) []MetricHandler {

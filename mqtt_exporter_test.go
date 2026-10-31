@@ -640,6 +640,7 @@ func TestMqttExporter_InputValidation(t *testing.T) {
 				tc.email,
 				tc.password,
 				tc.devices,
+				nil,
 				tc.offlineThreshold,
 				tc.pingInterval,
 				tc.stateRefreshInterval,

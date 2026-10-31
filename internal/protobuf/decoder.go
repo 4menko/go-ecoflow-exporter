@@ -198,9 +198,46 @@ func (d *ProtobufDecoder) DecodeProtobufMessage(payload []byte) (map[string]inte
 				params[k] = v
 			}
 		} else {
-			// Unknown pdata format - log for debugging
-			failedCount++
-			d.logUnknownCommand(header.CmdFunc, header.CmdId, pdata, err)
+			// JSON failed. Try device-specific protobuf decoders before giving up.
+			decoded := false
+
+			// cmd_func=2 carries the EcoFlow smart plug (HW52) heartbeat (plug_heartbeat).
+			// Fields include: watts, volt, current, switch, temp, freq, powerPlugs.
+			// Schema: foxthefox/ioBroker.ecoflow-mqtt plug_heartbeat.
+			if header.CmdFunc == 2 {
+				if plugParams, plugErr := decodePlugHeartbeat(pdata); plugErr == nil {
+					parsedCount++
+					decoded = true
+					logSmartPlugDecode("plug_heartbeat", header.CmdFunc, header.CmdId, plugParams, nil)
+					prefix := fmt.Sprintf("%d_%d_", header.CmdFunc, header.CmdId)
+					for k, v := range plugParams {
+						params[prefix+k] = v
+					}
+				} else {
+					logSmartPlugDecode("plug_heartbeat", header.CmdFunc, header.CmdId, nil, plugErr)
+				}
+			}
+
+			// cmd_func=254 carries daily energy history from the smart plug (EnergyPack).
+			// Produces dailyEnergyWh and dailyUptimeMin metrics.
+			if header.CmdFunc == 254 {
+				if energyParams, energyErr := decodeEnergyPack(pdata); energyErr == nil {
+					parsedCount++
+					decoded = true
+					logSmartPlugDecode("energy_pack", header.CmdFunc, header.CmdId, energyParams, nil)
+					prefix := fmt.Sprintf("%d_%d_", header.CmdFunc, header.CmdId)
+					for k, v := range energyParams {
+						params[prefix+k] = v
+					}
+				} else {
+					logSmartPlugDecode("energy_pack", header.CmdFunc, header.CmdId, nil, energyErr)
+				}
+			}
+
+			if !decoded {
+				failedCount++
+				d.logUnknownCommand(header.CmdFunc, header.CmdId, pdata, err)
+			}
 		}
 	}
 

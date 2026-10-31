@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ecoflow-exporter
+  namespace: ecoflow
+  labels:
+    app: ecoflow-exporter
+spec:
+  type: ClusterIP
+  selector:
+    app: ecoflow-exporter
+  ports:
+    - name: metrics
+      port: 2112
+      targetPort: 2112
+      protocol: TCP

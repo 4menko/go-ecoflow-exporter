@@ -8,18 +8,20 @@ import (
 )
 
 type RestMetricsExporter struct {
-	c        *ecoflow.Client
-	interval time.Duration
-	handlers []MetricHandler
-	mapping  map[string]string
+	c            *ecoflow.Client
+	interval     time.Duration
+	handlers     []MetricHandler
+	mapping      map[string]string
+	deviceLabels map[string]map[string]string // SN -> extra Prometheus labels
 }
 
-func NewRestMetricsExporter(c *ecoflow.Client, interval time.Duration, mapping map[string]string, handlers ...MetricHandler) *RestMetricsExporter {
+func NewRestMetricsExporter(c *ecoflow.Client, interval time.Duration, mapping map[string]string, deviceLabels map[string]map[string]string, handlers ...MetricHandler) *RestMetricsExporter {
 	return &RestMetricsExporter{
-		c:        c,
-		interval: interval,
-		handlers: handlers,
-		mapping:  mapping,
+		c:            c,
+		interval:     interval,
+		handlers:     handlers,
+		mapping:      mapping,
+		deviceLabels: deviceLabels,
 	}
 }
 
@@ -49,6 +51,7 @@ func (e *RestMetricsExporter) ExportMetrics() {
 					SN:     dev.SN,
 					Name:   getDeviceName(e.mapping, dev.SN),
 					Online: dev.Online,
+					Labels: e.deviceLabels[dev.SN],
 				}
 				go hh.Handle(ctx, ecoflowDevice, rawParameters)
 			}

@@ -40,6 +40,7 @@ type PingStats struct {
 type MqttMetricsExporter struct {
 	c                    *ecoflow.MqttClient
 	devices              map[string]string
+	deviceLabels         map[string]map[string]string // SN -> extra Prometheus labels
 	handlers             []MetricHandler
 	offlineThreshold     time.Duration
 	userId               string
@@ -51,7 +52,7 @@ type MqttMetricsExporter struct {
 	protobufDecoder      *protobuf.ProtobufDecoder // Persists to track seen devices
 }
 
-func NewMqttMetricsExporter(email, password string, devices map[string]string, offlineThreshold, pingInterval, stateRefreshInterval time.Duration, handlers ...MetricHandler) (*MqttMetricsExporter, error) {
+func NewMqttMetricsExporter(email, password string, devices map[string]string, deviceLabels map[string]map[string]string, offlineThreshold, pingInterval, stateRefreshInterval time.Duration, handlers ...MetricHandler) (*MqttMetricsExporter, error) {
 	// Validate inputs
 	if email == "" || password == "" {
 		return nil, errors.New("email and password are required")
@@ -84,6 +85,7 @@ func NewMqttMetricsExporter(email, password string, devices map[string]string, o
 
 	exporter := &MqttMetricsExporter{
 		devices:              devices,
+		deviceLabels:         deviceLabels,
 		handlers:             handlers,
 		offlineThreshold:     offlineThreshold,
 		pingInterval:         pingInterval,
@@ -232,6 +234,7 @@ func (m *MqttMetricsExporter) MessageHandler(_ mqtt.Client, msg mqtt.Message) {
 			SN:     serialNumber,
 			Name:   getDeviceName(m.devices, serialNumber),
 			Online: 1,
+			Labels: m.deviceLabels[serialNumber],
 		}, fullState)
 	}
 }
@@ -286,6 +289,7 @@ func (m *MqttMetricsExporter) monitorDeviceStatus() {
 						SN:     deviceSN,
 						Name:   deviceName,
 						Online: 0,
+						Labels: m.deviceLabels[deviceSN],
 					}, map[string]interface{}{})
 				}
 			}

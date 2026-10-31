@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecoflow-exporter
+  namespace: ecoflow
+  labels:
+    app: ecoflow-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ecoflow-exporter
+  template:
+    metadata:
+      labels:
+        app: ecoflow-exporter
+    spec:
+      containers:
+        - name: ecoflow-exporter
+          image: europe-west3-docker.pkg.dev/shared-424709/docker/go-ecoflow-exporter:smart-plug
+          ports:
+            - name: metrics
+              containerPort: 2112
+              protocol: TCP
+          env:
+            - name: EXPORTER_TYPE
+              value: "mqtt"
+            - name: PROMETHEUS_ENABLED
+              value: "true"
+            - name: ECOFLOW_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: ecoflow-credentials
+                  key: email
+            - name: ECOFLOW_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ecoflow-credentials
+                  key: password
+            # Friendly names for the two smart plugs (visible in Prometheus labels).
+            - name: ECOFLOW_DEVICES_PRETTY_NAMES
+              value: '{"HW52XXXXXXXXXXX1":"smart_plug_1","HW52XXXXXXXXXXX2":"smart_plug_2"}'
+            # Optional: custom per-device labels added to every Prometheus metric.
+            # All devices must share the same label keys; only values can differ.
+            # - name: ECOFLOW_DEVICE_LABELS
+            #   value: '{"HW52XXXXXXXXXXX1":{"location":"office"},"HW52XXXXXXXXXXX2":{"location":"kitchen"}}'
+            - name: MQTT_PING_INTERVAL_SECONDS
+              value: "20"
+            - name: MQTT_STATE_REFRESH_INTERVAL_SECONDS
+              value: "300"
+            - name: MQTT_DEVICE_OFFLINE_THRESHOLD_SECONDS
+              value: "60"
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "50m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 2112
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 2112
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      restartPolicy: Always

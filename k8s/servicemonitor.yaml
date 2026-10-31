@@ -1,0 +1,25 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ecoflow-exporter
+  namespace: ecoflow
+  labels:
+    app: ecoflow-exporter
+    # This label must match the serviceMonitorSelector of your Prometheus CR.
+    # For kube-prometheus-stack the default is the Helm release name, typically:
+    #   release: kube-prometheus-stack
+    # Run: kubectl get prometheus -A -o jsonpath='{.items[*].spec.serviceMonitorSelector}'
+    # to find the correct selector for your cluster.
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - ecoflow
+  selector:
+    matchLabels:
+      app: ecoflow-exporter
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scrapeTimeout: 10s
